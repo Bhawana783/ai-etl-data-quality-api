@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 import pandas as pd
 from sqlalchemy.orm import Session
-from typing import List
 
 from .database import Base, engine, SessionLocal
 from .ingestion import ingest_data
@@ -22,7 +21,10 @@ def get_db():
         db.close()
 
 @app.post("/upload", response_model=QualityReport)
-async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
     # Check file type
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
@@ -33,13 +35,13 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading CSV: {e}")
 
-    # Run data quality checks
-    quality_report = run_quality_checks(df)
-
-    # Ingest data into the database
+    # Ingest data (raw + cleaned) and get cleaned DataFrame
     try:
-        ingest_data(df, db)
+        df_clean = ingest_data(df, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error ingesting data: {e}")
+
+    # Run data quality checks on CLEANED data
+    quality_report = run_quality_checks(df_clean)
 
     return quality_report

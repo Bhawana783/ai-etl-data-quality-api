@@ -12,8 +12,8 @@ def ingest_data(df: pd.DataFrame, db: Session):
         ))
     db.commit()
 
-    # clean data
-    df_clean = df.dropna().drop_duplicates()
+    # clean data (FIX APPLIED)
+    df_clean = df.dropna().drop_duplicates().copy()
     df_clean["age"] = df_clean["age"].astype(int)
 
     # store cleaned data
